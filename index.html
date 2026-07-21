@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC 服务器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #1a1a2e; color: #e0e0e0;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    background: #16213e; border-radius: 16px; padding: 32px 28px;
+    width: 100%; max-width: 380px; margin: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3); text-align: center;
+  }
+  h1 { font-size: 24px; margin-bottom: 24px; }
+  .status-dot {
+    display: inline-block; width: 16px; height: 16px; border-radius: 50%;
+    margin-right: 8px; vertical-align: middle;
+  }
+  .status-dot.online  { background: #4ade80; box-shadow: 0 0 12px #4ade80; }
+  .status-dot.offline { background: #6b7280; }
+  .status-dot.starting{ background: #facc15; box-shadow: 0 0 12px #facc15; animation: pulse 1s infinite; }
+  .status-dot.crashed { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-size: 20px; font-weight: 600; margin: 12px 0; }
+  .ip-box {
+    background: #0f3460; border-radius: 10px; padding: 14px;
+    margin: 16px 0; display: flex; align-items: center; justify-content: space-between;
+  }
+  .ip-text { font-family: "SF Mono", "Consolas", monospace; font-size: 18px; letter-spacing: 1px; }
+  .copy-btn {
+    background: #1a1a2e; border: 1px solid #334; color: #ccc;
+    padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { background: #2a2a4e; }
+  .copy-btn.copied { border-color: #4ade80; color: #4ade80; }
+  .btn {
+    display: block; width: 100%; padding: 16px; border: none; border-radius: 12px;
+    font-size: 17px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-start  { background: #4ade80; color: #1a1a2e; }
+  .btn-start:hover:not(:disabled) { background: #22c55e; }
+  .btn-stop   { background: #ef4444; color: #fff; }
+  .btn-stop:hover:not(:disabled) { background: #dc2626; }
+  .btn-recreate { background: #f59e0b; color: #1a1a2e; margin-top: 12px; }
+  .btn-recreate:hover:not(:disabled) { background: #d97706; }
+  .tip { color: #9ca3af; font-size: 13px; margin-top: 16px; }
+  .confirm-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-box {
+    background: #16213e; border-radius: 12px; padding: 24px; text-align: center;
+    max-width: 300px; margin: 16px;
+  }
+  .confirm-box p { margin-bottom: 16px; }
+  .confirm-box button {
+    padding: 10px 24px; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600; cursor: pointer; margin: 0 6px;
+  }
+  .confirm-yes { background: #ef4444; color: #fff; }
+  .confirm-no  { background: #374151; color: #ccc; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>⛏️ Minecraft 服务器</h1>
+
+  <!-- 在线 -->
+  <div id="view-online" style="display:none">
+    <div><span class="status-dot online"></span><span class="status-text">在线</span></div>
+    <div class="ip-box">
+      <span id="ip-display" class="ip-text">---.---.---.---</span>
+      <button class="copy-btn" id="copy-btn" onclick="copyIP()">📋 复制</button>
+    </div>
+    <button class="btn btn-stop" id="stop-btn" onclick="showStopConfirm()">关闭服务器</button>
+    <div class="tip" style="margin-top:8px">关机前会保存世界，不丢进度</div>
+  </div>
+
+  <!-- 离线 -->
+  <div id="view-offline" style="display:none">
+    <div><span class="status-dot offline"></span><span class="status-text">离线</span></div>
+    <button class="btn btn-start" id="start-btn" onclick="startServer()">启动服务器</button>
+    <div class="tip">启动约需 2-3 分钟</div>
+  </div>
+
+  <!-- 启动中 -->
+  <div id="view-starting" style="display:none">
+    <div><span class="status-dot starting"></span><span class="status-text">启动中…</span></div>
+    <div class="tip" id="starting-tip">预计还需 2-3 分钟，请稍候</div>
+    <button class="btn btn-start" disabled style="margin-top:12px">⏳ 请等待…</button>
+  </div>
+
+  <!-- 崩溃 -->
+  <div id="view-crashed" style="display:none">
+    <div><span class="status-dot crashed"></span><span class="status-text">服务异常</span></div>
+    <div class="tip">MC 进程可能已崩溃，尝试关机后重新启动</div>
+    <button class="btn btn-stop" onclick="showStopConfirm()" style="margin-top:12px">关闭服务器</button>
+    <button class="btn btn-recreate" onclick="recreateInstance()">重建实例</button>
+  </div>
+</div>
+
+<!-- 关机确认弹窗 -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <p>确定要关闭服务器吗？</p>
+    <p style="font-size:13px;color:#9ca3af">世界会自动保存，下次开机可继续游玩</p>
+    <button class="confirm-yes" id="confirm-yes" onclick="stopServer()">确定关机</button>
+    <button class="confirm-no" onclick="hideStopConfirm()">取消</button>
+  </div>
+</div>
+
+<script>
+// ====== 配置（部署前修改） ======
+const API_BASE = "https://mc-server-api-rfeaahervs.cn-shenzhen.fcapp.run";
+const API_KEY  = "f656760fe62c5fcfc85d1271eb4c6572";
+
+// ====== 状态管理 ======
+let pollingTimer = null;
+
+async function callAPI(method, path) {
+  const resp = await fetch(API_BASE + path, {
+    method: method,
+    headers: { "x-api-key": API_KEY }
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
+function setView(view) {
+  document.querySelectorAll("[id^='view-']").forEach(el => el.style.display = "none");
+  const target = document.getElementById("view-" + view);
+  if (target) target.style.display = "block";
+}
+
+// ====== 轮询状态 ======
+async function refreshStatus() {
+  try {
+    const data = await callAPI("GET", "/status");
+
+    if (data.ecs === "Running" && data.mc === "Online") {
+      setView("online");
+      document.getElementById("ip-display").textContent = data.ip;
+      stopPolling();
+    } else if (data.ecs === "Running" && data.mc === "Crashed") {
+      setView("crashed");
+      stopPolling();
+    } else if (data.ecs === "Starting") {
+      setView("starting");
+      startPolling();
+    } else if (data.ecs === "Stopped") {
+      setView("offline");
+      stopPolling();
+    } else {
+      setView("starting");
+      startPolling();
+    }
+  } catch (e) {
+    console.error("Status check failed:", e);
+    document.getElementById("starting-tip").textContent = "网络异常，正在重试…";
+  }
+}
+
+function startPolling() {
+  if (pollingTimer) return;
+  pollingTimer = setInterval(refreshStatus, 10000);
+}
+
+function stopPolling() {
+  if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; }
+}
+
+// ====== 按钮操作 ======
+async function startServer() {
+  setView("starting");
+  document.getElementById("starting-tip").textContent = "正在发送启动指令…";
+  try {
+    await callAPI("POST", "/start");
+    document.getElementById("starting-tip").textContent = "预计还需 2-3 分钟，请稍候";
+    startPolling();
+  } catch (e) {
+    document.getElementById("starting-tip").textContent = "启动失败，请重试";
+    setTimeout(() => refreshStatus(), 3000);
+  }
+}
+
+function showStopConfirm() {
+  document.getElementById("confirm-overlay").classList.add("show");
+}
+
+function hideStopConfirm() {
+  document.getElementById("confirm-overlay").classList.remove("show");
+}
+
+async function stopServer() {
+  hideStopConfirm();
+  setView("starting");
+  document.getElementById("starting-tip").textContent = "正在保存世界并关机…";
+  try {
+    await callAPI("POST", "/stop");
+    document.getElementById("starting-tip").textContent = "正在关机，请稍候…";
+    setTimeout(() => { stopPolling(); refreshStatus(); }, 5000);
+  } catch (e) {
+    document.getElementById("starting-tip").textContent = "关机失败，请重试";
+    setTimeout(() => refreshStatus(), 3000);
+  }
+}
+
+async function recreateInstance() {
+  setView("starting");
+  document.getElementById("starting-tip").textContent = "正在重建实例…";
+  try {
+    await callAPI("POST", "/stop");
+    await new Promise(r => setTimeout(r, 60000));
+    await callAPI("POST", "/start");
+    document.getElementById("starting-tip").textContent = "预计还需 2-3 分钟，请稍候";
+    startPolling();
+  } catch (e) {
+    document.getElementById("starting-tip").textContent = "重建失败，请重试";
+    setTimeout(() => refreshStatus(), 3000);
+  }
+}
+
+function copyIP() {
+  const ip = document.getElementById("ip-display").textContent;
+  navigator.clipboard.writeText(ip).then(() => {
+    const btn = document.getElementById("copy-btn");
+    btn.textContent = "✓ 已复制";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "📋 复制"; btn.classList.remove("copied"); }, 2000);
+  });
+}
+
+// ====== 初始化 ======
+refreshStatus();
+</script>
+</body>
+</html>
