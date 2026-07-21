@@ -148,12 +148,20 @@
 </div>
 
 <script>
-// ====== 解锁密码 ======
-const PANEL_PASSWORD = "mc2025";
+// ====== 解锁密码（SHA-256 哈希，修改密码请先 hash） ======
+// 当前密码: mc2025  →  hash: 359ac0a3decfee109e8aa2ffb187ba9102bc043d0443edc03c9f206f6d7fd51f
+// 换密码: 在浏览器控制台执行 console.log(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("新密码")).then(h => Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,"0")).join("")))
+const PANEL_PASSWORD_HASH = "359ac0a3decfee109e8aa2ffb187ba9102bc043d0443edc03c9f206f6d7fd51f";
 
-function unlock() {
+async function sha256(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function unlock() {
   const input = document.getElementById("unlock-input").value;
-  if (input === PANEL_PASSWORD) {
+  const hash = await sha256(input);
+  if (hash === PANEL_PASSWORD_HASH) {
     sessionStorage.setItem("mc_unlocked", "1");
     document.getElementById("unlock-overlay").style.display = "none";
   } else {
