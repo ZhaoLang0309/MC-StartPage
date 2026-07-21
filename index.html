@@ -67,9 +67,38 @@
   }
   .confirm-yes { background: #ef4444; color: #fff; }
   .confirm-no  { background: #374151; color: #ccc; }
+  /* 解锁页 */
+  #unlock-overlay {
+    display: flex; position: fixed; inset: 0; background: #1a1a2e;
+    align-items: center; justify-content: center; z-index: 20;
+  }
+  .unlock-box { text-align: center; }
+  .unlock-box input {
+    width: 100%; padding: 14px; border-radius: 10px; border: 2px solid #334;
+    background: #0f3460; color: #e0e0e0; font-size: 18px; text-align: center;
+    margin: 12px 0; outline: none; letter-spacing: 4px;
+  }
+  .unlock-box input:focus { border-color: #4ade80; }
+  .unlock-box .unlock-btn {
+    width: 100%; padding: 14px; border-radius: 10px; border: none;
+    background: #4ade80; color: #1a1a2e; font-size: 17px; font-weight: 600;
+    cursor: pointer;
+  }
+  .unlock-box .err { color: #ef4444; font-size: 14px; margin-top: 8px; display: none; }
 </style>
 </head>
 <body>
+
+<!-- 解锁遮罩 -->
+<div id="unlock-overlay">
+  <div class="unlock-box">
+    <h1 style="font-size:28px;margin-bottom:8px">⛏️</h1>
+    <p style="color:#9ca3af;margin-bottom:12px">请输入访问密码</p>
+    <input type="password" id="unlock-input" placeholder="· · · · · ·" maxlength="20" onkeydown="if(event.key==='Enter')unlock()">
+    <p class="err" id="unlock-err">密码错误</p>
+    <button class="unlock-btn" onclick="unlock()">解锁</button>
+  </div>
+</div>
 
 <div class="card">
   <h1>⛏️ Minecraft 服务器</h1>
@@ -119,7 +148,25 @@
 </div>
 
 <script>
-// ====== 配置（部署前修改） ======
+// ====== 解锁密码 ======
+const PANEL_PASSWORD = "mc2025";
+
+function unlock() {
+  const input = document.getElementById("unlock-input").value;
+  if (input === PANEL_PASSWORD) {
+    sessionStorage.setItem("mc_unlocked", "1");
+    document.getElementById("unlock-overlay").style.display = "none";
+  } else {
+    document.getElementById("unlock-err").style.display = "block";
+  }
+}
+
+// 已解锁跳过
+if (sessionStorage.getItem("mc_unlocked") === "1") {
+  document.getElementById("unlock-overlay").style.display = "none";
+}
+
+// ====== 配置 ======
 const API_BASE = "https://mc-server-api-rfeaahervs.cn-shenzhen.fcapp.run";
 const API_KEY  = "f656760fe62c5fcfc85d1271eb4c6572";
 
