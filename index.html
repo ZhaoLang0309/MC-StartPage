@@ -85,55 +85,56 @@
     cursor: pointer;
   }
   .unlock-box .err { color: #ef4444; font-size: 14px; margin-top: 8px; display: none; }
-  /* 白名单管理 */
-  .wl-card {
+  /* 服务器管理面板 */
+  .admin-card {
     background: #16213e; border-radius: 16px; padding: 24px 28px;
     width: 100%; max-width: 380px; margin: 0 16px 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   }
-  .wl-toggle {
+  .admin-toggle {
     width: 100%; padding: 14px; border: 2px solid #334; border-radius: 12px;
     background: transparent; color: #e0e0e0; font-size: 16px; font-weight: 600;
     cursor: pointer; transition: all 0.2s;
   }
-  .wl-toggle:hover { border-color: #4ade80; background: #0f3460; }
-  .wl-toggle.active { border-color: #4ade80; border-radius: 12px 12px 0 0; }
-  .wl-body { display: none; border: 2px solid #4ade80; border-top: none; border-radius: 0 0 12px 12px; padding: 16px; }
-  .wl-body.show { display: block; }
-  .wl-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-  .wl-tab {
-    flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334;
-    background: transparent; color: #9ca3af; font-size: 14px; cursor: pointer;
+  .admin-toggle:hover { border-color: #f59e0b; background: #0f3460; }
+  .admin-toggle.active { border-color: #f59e0b; border-radius: 12px 12px 0 0; }
+  .admin-body { display: none; border: 2px solid #f59e0b; border-top: none; border-radius: 0 0 12px 12px; padding: 16px; }
+  .admin-body.show { display: block; }
+  .admin-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .admin-tab {
+    flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #334;
+    background: transparent; color: #9ca3af; font-size: 12px; cursor: pointer;
   }
-  .wl-tab.active { background: #0f3460; border-color: #4ade80; color: #4ade80; }
-  .wl-field { margin-bottom: 12px; }
-  .wl-field label { display: block; color: #9ca3af; font-size: 12px; margin-bottom: 4px; }
-  .wl-field input {
+  .admin-tab.active { background: #0f3460; border-color: #f59e0b; color: #f59e0b; }
+  .admin-field { margin-bottom: 12px; }
+  .admin-field label { display: block; color: #9ca3af; font-size: 12px; margin-bottom: 4px; }
+  .admin-field input {
     width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334;
     background: #0f3460; color: #e0e0e0; font-size: 14px; outline: none;
   }
-  .wl-field input:focus { border-color: #4ade80; }
-  .wl-ip-hint { color: #f59e0b; font-size: 12px; margin-bottom: 12px; display: none; }
-  .wl-gen-btn {
+  .admin-field input:focus { border-color: #f59e0b; }
+  .admin-ip-hint { color: #f59e0b; font-size: 12px; margin-bottom: 12px; display: none; }
+  .admin-gen-btn {
     width: 100%; padding: 12px; border: none; border-radius: 10px;
-    background: #4ade80; color: #1a1a2e; font-size: 16px; font-weight: 600;
+    background: #f59e0b; color: #1a1a2e; font-size: 16px; font-weight: 600;
     cursor: pointer;
   }
-  .wl-gen-btn:hover { background: #22c55e; }
-  .wl-output {
+  .admin-gen-btn:hover { background: #d97706; }
+  .admin-gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .admin-output {
     display: block; margin-top: 4px;
     background: #0f3460; border-radius: 10px; padding: 14px;
     font-family: "SF Mono","Consolas",monospace; font-size: 12px;
     word-break: break-all; line-height: 1.6; max-height: 160px; overflow-y: auto;
     white-space: pre-wrap; color: #e0e0e0;
   }
-  .wl-copy-btn {
-    display: none; width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #334;
+  .admin-copy-btn {
+    display: block; width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #334;
     border-radius: 8px; background: #1a1a2e; color: #ccc; font-size: 14px; cursor: pointer;
   }
-  .wl-copy-btn.show { display: block; }
-  .wl-copy-btn:hover { background: #2a2a4e; }
-  .wl-copy-btn.copied { border-color: #4ade80; color: #4ade80; }
+  .admin-copy-btn:hover { background: #2a2a4e; }
+  .admin-warning { color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none; }
+  .feature-panel { }
 </style>
 </head>
 <body>
@@ -186,51 +187,85 @@
   </div>
 </div>
 
-<!-- 白名单管理 -->
-<div class="wl-card">
-  <button class="wl-toggle" id="wl-toggle" onclick="toggleWhitelist()">👥 查看/配置白名单</button>
-  <div class="wl-body" id="wl-body">
+<!-- 服务器管理 -->
+<div class="admin-card">
+  <button class="admin-toggle" id="admin-toggle" onclick="toggleAdmin()">⚙️ 服务器管理</button>
+  <div class="admin-body" id="admin-body">
     <!-- Admin 密码验证 -->
-    <div id="wl-admin-gate" style="text-align:center;padding:8px 0">
-      <p style="color:#9ca3af;font-size:13px;margin-bottom:10px">管理白名单需要再次验证</p>
-      <input type="password" id="wl-admin-pwd" placeholder="输入管理员密码" maxlength="20"
+    <div id="admin-gate" style="text-align:center;padding:8px 0">
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:10px">管理功能需要管理员密码</p>
+      <input type="password" id="admin-pwd" placeholder="输入管理员密码" maxlength="20"
         style="width:100%;padding:10px;border-radius:8px;border:1px solid #334;background:#0f3460;color:#e0e0e0;font-size:14px;text-align:center;outline:none;margin-bottom:8px"
-        onkeydown="if(event.key==='Enter')verifyWlAdmin()">
-      <p style="color:#ef4444;font-size:13px;display:none" id="wl-admin-err">密码错误</p>
-      <button onclick="verifyWlAdmin()"
-        style="width:100%;padding:10px;border:none;border-radius:8px;background:#4ade80;color:#1a1a2e;font-size:14px;font-weight:600;cursor:pointer">验证</button>
+        onkeydown="if(event.key==='Enter')verifyAdmin()">
+      <p style="color:#ef4444;font-size:13px;display:none" id="admin-err">密码错误</p>
+      <button onclick="verifyAdmin()"
+        style="width:100%;padding:10px;border:none;border-radius:8px;background:#f59e0b;color:#1a1a2e;font-size:14px;font-weight:600;cursor:pointer">验证</button>
     </div>
-    <!-- 白名单功能（验证后显示） -->
-    <div id="wl-content" style="display:none">
-    <div class="wl-tabs">
-      <button class="wl-tab active" id="tab-view" onclick="switchWlTab('view')">📋 查看白名单</button>
-      <button class="wl-tab" id="tab-add" onclick="switchWlTab('add')">➕ 添加玩家</button>
-    </div>
-    <div class="wl-field">
-      <label>PEM 密钥文件路径</label>
-      <input type="text" id="wl-pem" placeholder="C:/Users/.../MC.pem">
-    </div>
-    <div class="wl-field" id="wl-name-group" style="display:none">
-      <label>玩家 ID（区分大小写）</label>
-      <input type="text" id="wl-name" placeholder="例如: XIN77" maxlength="16">
-    </div>
-    <p class="wl-ip-hint" id="wl-ip-hint">⚠ 服务器离线，无法执行白名单命令。请先启动服务器。</p>
-    <button class="wl-gen-btn" id="wl-gen-btn" onclick="generateCommand()">📋 生成命令</button>
-    <div class="wl-result" id="wl-result" style="display:none">
-      <div style="margin-top:12px">
-        <span style="color:#9ca3af;font-size:12px">① 复制到 <strong>PowerShell</strong> 执行，连接服务器：</span>
-        <pre class="wl-output" id="wl-step1"></pre>
-        <button class="wl-copy-btn" style="display:block;margin-bottom:12px" onclick="copyWl('wl-step1', this)">📋 复制第①步</button>
+    <!-- 管理功能（验证后显示） -->
+    <div id="admin-content" style="display:none">
+      <!-- 功能选择 -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" id="ftab-whitelist" onclick="switchFeature('whitelist')">👥 白名单</button>
+        <button class="admin-tab" id="ftab-resetworld" onclick="switchFeature('resetworld')">🌍 重新开档</button>
+        <button class="admin-tab" id="ftab-resetplayer" onclick="switchFeature('resetplayer')">🔄 重置玩家</button>
       </div>
-      <div>
-        <span style="color:#9ca3af;font-size:12px">② 连上后在服务器终端中粘贴执行：</span>
-        <pre class="wl-output" id="wl-step2"></pre>
-        <button class="wl-copy-btn" style="display:block" onclick="copyWl('wl-step2', this)">📋 复制第②步</button>
+
+      <!-- === 白名单 === -->
+      <div id="feature-whitelist" class="feature-panel">
+        <div class="admin-tabs" style="margin-bottom:12px">
+          <button class="admin-tab active" id="wltab-view" onclick="switchWlMode('view')">📋 查看</button>
+          <button class="admin-tab" id="wltab-add" onclick="switchWlMode('add')">➕ 添加</button>
+        </div>
+        <div class="admin-field">
+          <label>PEM 密钥文件路径</label>
+          <input type="text" id="wl-pem" placeholder="C:/Users/.../MC.pem">
+        </div>
+        <div class="admin-field" id="wl-name-group" style="display:none">
+          <label>玩家 ID</label>
+          <input type="text" id="wl-name" placeholder="例如: XIN77" maxlength="16">
+        </div>
+        <p class="admin-ip-hint" id="admin-ip-hint">⚠ 服务器离线，无法执行命令。请先启动服务器。</p>
+        <button class="admin-gen-btn" id="wl-gen-btn" onclick="generateWlCmd()">📋 生成命令</button>
       </div>
-    </div>
-    </div><!-- /wl-content -->
-  </div><!-- /wl-body -->
-</div><!-- /wl-card -->
+
+      <!-- === 重新开档 === -->
+      <div id="feature-resetworld" class="feature-panel" style="display:none">
+        <p style="color:#ef4444;font-size:13px;margin-bottom:12px">⚠ 此操作会删除当前世界存档！建议先备份。</p>
+        <div class="admin-field">
+          <label>输入「确认开档」以继续</label>
+          <input type="text" id="rw-confirm" placeholder="确认开档" maxlength="10">
+        </div>
+        <p class="admin-ip-hint" id="admin-ip-hint-rw">⚠ 服务器离线，无法执行命令。请先启动服务器。</p>
+        <button class="admin-gen-btn" id="rw-gen-btn" onclick="generateRwCmd()">📋 生成命令</button>
+      </div>
+
+      <!-- === 重置玩家 === -->
+      <div id="feature-resetplayer" class="feature-panel" style="display:none">
+        <p style="color:#ef4444;font-size:13px;margin-bottom:12px">⚠ 此操作会删除玩家背包、位置等所有数据（白名单保留）。</p>
+        <div class="admin-field">
+          <label>要重置的玩家 ID</label>
+          <input type="text" id="rp-name" placeholder="玩家ID" maxlength="16">
+        </div>
+        <p class="admin-ip-hint" id="admin-ip-hint-rp">⚠ 服务器离线，无法执行命令。请先启动服务器。</p>
+        <button class="admin-gen-btn" id="rp-gen-btn" onclick="generateRpCmd()">📋 生成命令</button>
+      </div>
+
+      <!-- === 命令输出（共享） === -->
+      <div id="cmd-result" style="display:none;margin-top:12px">
+        <div style="margin-bottom:12px">
+          <span style="color:#9ca3af;font-size:12px">① 复制到 <strong>PowerShell</strong> 执行，连接服务器：</span>
+          <pre class="admin-output" id="cmd-step1"></pre>
+          <button class="admin-copy-btn" onclick="copyCmd('cmd-step1', this)">📋 复制第①步</button>
+        </div>
+        <div>
+          <span style="color:#9ca3af;font-size:12px">② 连上后在服务器终端中粘贴执行：</span>
+          <pre class="admin-output" id="cmd-step2"></pre>
+          <button class="admin-copy-btn" onclick="copyCmd('cmd-step2', this)">📋 复制第②步</button>
+        </div>
+      </div>
+    </div><!-- /admin-content -->
+  </div><!-- /admin-body -->
+</div><!-- /admin-card -->
 
 <!-- 关机确认弹窗 -->
 <div class="confirm-overlay" id="confirm-overlay">
@@ -391,9 +426,14 @@ function copyIP() {
   });
 }
 
-// ====== 白名单管理 ======
-let wlMode = "view"; // "view" | "add"
-let wlExpanded = false;
+// ====== 服务器管理 ======
+const ADMIN_PASSWORD_HASH = "9ab67ff090b71da5e33dc48b3f7c5cd251eb7d43e455a34172b01fa316cec3f4";
+// 当前 admin 密码: adminmczhaolang
+// 换密码: 在浏览器控制台执行 console.log(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("新密码")).then(h => Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,"0")).join("")))
+
+let adminExpanded = false;
+let wlMode = "view";       // "view" | "add"
+let currentFeature = "whitelist";  // "whitelist" | "resetworld" | "resetplayer"
 
 // PEM 路径持久化
 const WL_PEM_KEY = "mc_wl_pem";
@@ -404,84 +444,104 @@ function loadPemPath() {
 function savePemPath() {
   localStorage.setItem(WL_PEM_KEY, document.getElementById("wl-pem").value);
 }
+loadPemPath();
 
-function toggleWhitelist() {
-  wlExpanded = !wlExpanded;
-  const body = document.getElementById("wl-body");
-  const toggle = document.getElementById("wl-toggle");
-  if (wlExpanded) {
+// ====== 展开/折叠 ======
+function toggleAdmin() {
+  adminExpanded = !adminExpanded;
+  const body = document.getElementById("admin-body");
+  const toggle = document.getElementById("admin-toggle");
+  if (adminExpanded) {
     body.classList.add("show");
     toggle.classList.add("active");
-    // 检查是否已验证 admin
-    if (sessionStorage.getItem("mc_wl_admin") === "1") {
-      showWlContent();
+    if (sessionStorage.getItem("mc_admin") === "1") {
+      showAdminContent();
     }
-    loadPemPath();
-    updateWlIpHint();
+    updateIpHint();
   } else {
     body.classList.remove("show");
     toggle.classList.remove("active");
   }
 }
 
-function showWlContent() {
-  document.getElementById("wl-admin-gate").style.display = "none";
-  document.getElementById("wl-content").style.display = "block";
+function showAdminContent() {
+  document.getElementById("admin-gate").style.display = "none";
+  document.getElementById("admin-content").style.display = "block";
 }
 
-async function verifyWlAdmin() {
-  const input = document.getElementById("wl-admin-pwd").value;
+// ====== Admin 密码验证 ======
+async function verifyAdmin() {
+  const input = document.getElementById("admin-pwd").value;
   const hash = await sha256(input);
-  if (hash === PANEL_PASSWORD_HASH) {
-    sessionStorage.setItem("mc_wl_admin", "1");
-    document.getElementById("wl-admin-err").style.display = "none";
-    showWlContent();
-    loadPemPath();
-    updateWlIpHint();
+  if (hash === ADMIN_PASSWORD_HASH) {
+    sessionStorage.setItem("mc_admin", "1");
+    document.getElementById("admin-err").style.display = "none";
+    showAdminContent();
+    updateIpHint();
   } else {
-    document.getElementById("wl-admin-err").style.display = "block";
+    document.getElementById("admin-err").style.display = "block";
   }
 }
 
-function switchWlTab(mode) {
+// ====== 功能切换 ======
+function switchFeature(feat) {
+  currentFeature = feat;
+  ["whitelist","resetworld","resetplayer"].forEach(f => {
+    document.getElementById("feature-"+f).style.display = f === feat ? "block" : "none";
+    document.getElementById("ftab-"+f).classList.toggle("active", f === feat);
+  });
+  document.getElementById("cmd-result").style.display = "none";
+  updateIpHint();
+}
+
+function switchWlMode(mode) {
   wlMode = mode;
-  document.getElementById("tab-view").classList.toggle("active", mode === "view");
-  document.getElementById("tab-add").classList.toggle("active", mode === "add");
+  document.getElementById("wltab-view").classList.toggle("active", mode === "view");
+  document.getElementById("wltab-add").classList.toggle("active", mode === "add");
   document.getElementById("wl-name-group").style.display = mode === "add" ? "block" : "none";
-  // 清空之前的输出
-  document.getElementById("wl-output").classList.remove("show");
-  document.getElementById("wl-copy-btn").classList.remove("show");
+  document.getElementById("cmd-result").style.display = "none";
 }
 
-function updateWlIpHint() {
-  const hint = document.getElementById("wl-ip-hint");
-  if (!currentIP) {
-    hint.style.display = "block";
-    document.getElementById("wl-gen-btn").disabled = true;
-    document.getElementById("wl-gen-btn").style.opacity = "0.5";
-  } else {
-    hint.style.display = "none";
-    document.getElementById("wl-gen-btn").disabled = false;
-    document.getElementById("wl-gen-btn").style.opacity = "1";
-  }
+// ====== IP 状态提示 ======
+function updateIpHint() {
+  const hints = document.querySelectorAll(".admin-ip-hint");
+  const btns = document.querySelectorAll(".admin-gen-btn");
+  hints.forEach(h => { h.style.display = currentIP ? "none" : "block"; });
+  btns.forEach(b => { b.disabled = !currentIP; b.style.opacity = currentIP ? "1" : "0.5"; });
 }
 
-function generateCommand() {
-  savePemPath();
+// ====== 通用：构建 SSH 登录命令 + 显示结果 ======
+function showCmd(step2) {
   const pem = document.getElementById("wl-pem").value.trim();
-  const name = document.getElementById("wl-name").value.trim();
-
   if (!pem) { alert("请填写 PEM 密钥文件路径"); return; }
+  savePemPath();
+  const step1 = 'ssh -o StrictHostKeyChecking=accept-new -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP;
+  document.getElementById("cmd-step1").textContent = step1;
+  document.getElementById("cmd-step2").textContent = step2;
+  document.getElementById("cmd-result").style.display = "block";
+}
+
+function copyCmd(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = "✓ 已复制";
+    btn.style.borderColor = "#f59e0b";
+    btn.style.color = "#f59e0b";
+    setTimeout(() => { btn.textContent = orig; btn.style.borderColor = ""; btn.style.color = ""; }, 2000);
+  });
+}
+
+// ====== 白名单命令生成 ======
+function generateWlCmd() {
+  const name = document.getElementById("wl-name").value.trim();
+  if (!currentIP) { alert("服务器离线，无法生成命令。"); return; }
   if (wlMode === "add" && !name) { alert("请填写玩家 ID"); return; }
-  if (!currentIP) { alert("服务器离线，无法生成命令。请先启动服务器。"); return; }
 
   let step2;
-
   if (wlMode === "view") {
-    // 查看：直接读 JSON
     step2 = 'python3 -c "import json; wl=json.load(open(\'/opt/minecraft/server/whitelist.json\')); [print(f\'  {e[\\\"name\\\"]}\') for e in wl]; print(f\'\\n共 {len(wl)} 个玩家\')"';
   } else {
-    // 添加：停服 → 改 JSON → 启服
     step2 = 'sudo systemctl stop minecraft && sudo python3 -c "\n' +
       'import hashlib, json, uuid\n' +
       "name = '" + name + "'\n" +
@@ -497,33 +557,54 @@ function generateCommand() {
       "    print(f'已添加 {name}')\n" +
       'else:\n' +
       "    print(f'{name} 已在白名单中')\n" +
-      "    print(e['name'])\n" +
-      'print()\n' +
+      "print()\n" +
       "print('当前白名单:', ', '.join(e['name'] for e in wl))\n" +
       '" && sudo systemctl start minecraft';
   }
-
-  // 第①步：在 PowerShell 执行，SSH 登录
-  const step1 = 'ssh -o StrictHostKeyChecking=accept-new -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP;
-
-  document.getElementById("wl-step1").textContent = step1;
-  document.getElementById("wl-step2").textContent = step2;
-  document.getElementById("wl-result").style.display = "block";
+  showCmd(step2);
 }
 
-function copyWl(id, btn) {
-  const text = document.getElementById(id).textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = "✓ 已复制";
-    btn.style.borderColor = "#4ade80";
-    btn.style.color = "#4ade80";
-    setTimeout(() => { btn.textContent = orig; btn.style.borderColor = ""; btn.style.color = ""; }, 2000);
-  });
+// ====== 重新开档命令生成 ======
+function generateRwCmd() {
+  if (!currentIP) { alert("服务器离线，无法生成命令。"); return; }
+  if (document.getElementById("rw-confirm").value.trim() !== "确认开档") {
+    alert("请输入「确认开档」以确认操作");
+    return;
+  }
+  const step2 = 'sudo systemctl stop minecraft && ' +
+    'sudo mv /opt/minecraft/server/world /opt/minecraft/server/world_backup_$(date +%Y%m%d_%H%M%S) && ' +
+    'sudo systemctl start minecraft && ' +
+    'echo "世界已重置，旧存档已备份到 world_backup_*"';
+  showCmd(step2);
 }
 
-// 首次展开时加载 PEM 路径
-loadPemPath();
+// ====== 重置玩家命令生成 ======
+function generateRpCmd() {
+  const name = document.getElementById("rp-name").value.trim();
+  if (!name) { alert("请填写玩家 ID"); return; }
+  if (!currentIP) { alert("服务器离线，无法生成命令。"); return; }
+
+  const step2 = 'sudo systemctl stop minecraft && sudo python3 -c "\n' +
+    'import hashlib, json, uuid, os, glob\n' +
+    "name = '" + name + "'\n" +
+    "h = bytearray(hashlib.md5(f'OfflinePlayer:{name}'.encode()).digest())\n" +
+    'h[6] = (h[6] & 0x0f) | 0x30\n' +
+    'h[8] = (h[8] & 0x3f) | 0x80\n' +
+    'uid = str(uuid.UUID(bytes=bytes(h)))\n' +
+    "base = '/opt/minecraft/server/world'\n" +
+    "deleted = []\n" +
+    "for f in [f'{base}/playerdata/{uid}.dat', f'{base}/stats/{uid}.json', f'{base}/advancements/{uid}.json']:\n" +
+    "    if os.path.exists(f):\n" +
+    "        os.remove(f)\n" +
+    "        deleted.append(os.path.basename(f))\n" +
+    "if deleted:\n" +
+    "    print('已删除:', ', '.join(deleted))\n" +
+    "    print(f'玩家 {name} 数据已重置')\n" +
+    'else:\n' +
+    "    print(f'未找到 {name} 的玩家数据（可能从未登录过）')\n" +
+    '" && sudo systemctl start minecraft';
+  showCmd(step2);
+}
 
 // ====== 初始化 ======
 refreshStatus();
