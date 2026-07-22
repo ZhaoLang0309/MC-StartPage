@@ -463,7 +463,7 @@ function generateCommand() {
       "s.close()";
   }
 
-  const cmd = 'ssh -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP + ' "python3 -c \\"' + pyCmd + '\\""';
+  const cmd = 'ssh -o StrictHostKeyChecking=accept-new -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP + ' "python3 -c \\"' + pyCmd + '\\""';
 
   const output = document.getElementById("wl-output");
   output.textContent = cmd;
