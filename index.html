@@ -439,44 +439,36 @@ function generateCommand() {
   if (wlMode === "add" && !name) { alert("请填写玩家 ID"); return; }
   if (!currentIP) { alert("服务器离线，无法生成命令。请先启动服务器。"); return; }
 
-  const rconPwd = "YYv3VAhOrVGdrYChsdp6hw==";
-  let pyCmd;
+  let step2;
 
   if (wlMode === "view") {
-    pyCmd = "import socket, struct; " +
-      "s = socket.socket(); " +
-      "s.connect(('127.0.0.1', 25575)); " +
-      "pwd = b'" + rconPwd + "\\x00\\x00'; " +
-      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd); " +
-      "s.recv(4096); " +
-      "cmd = b'whitelist list\\x00\\x00'; " +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd); " +
-      "print(s.recv(4096)[8:].decode().strip()); " +
-      "s.close()";
+    // 查看：直接读 JSON
+    step2 = 'python3 -c "import json; wl=json.load(open(\'/opt/minecraft/server/whitelist.json\')); [print(f\'  {e[\\\"name\\\"]}\') for e in wl]; print(f\'\\n共 {len(wl)} 个玩家\')"';
   } else {
-    pyCmd = "import socket, struct; " +
-      "s = socket.socket(); " +
-      "s.connect(('127.0.0.1', 25575)); " +
-      "pwd = b'" + rconPwd + "\\x00\\x00'; " +
-      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd); " +
-      "s.recv(4096); " +
-      "cmd = b'whitelist add " + name + "\\x00\\x00'; " +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd); " +
-      "print(s.recv(4096)[8:].decode().strip()); " +
-      "cmd2 = b'whitelist reload\\x00\\x00'; " +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd2), 2, 2) + cmd2); " +
-      "s.recv(4096); " +
-      "cmd3 = b'whitelist list\\x00\\x00'; " +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd3), 3, 2) + cmd3); " +
-      "print(s.recv(4096)[8:].decode().strip()); " +
-      "s.close()";
+    // 添加：停服 → 改 JSON → 启服
+    step2 = 'sudo systemctl stop minecraft && sudo python3 -c "\n' +
+      'import hashlib, json, uuid\n' +
+      "name = '" + name + "'\n" +
+      "h = bytearray(hashlib.md5(f'OfflinePlayer:{name}'.encode()).digest())\n" +
+      'h[6] = (h[6] & 0x0f) | 0x30\n' +
+      'h[8] = (h[8] & 0x3f) | 0x80\n' +
+      'uid = str(uuid.UUID(bytes=bytes(h)))\n' +
+      "wl = json.load(open('/opt/minecraft/server/whitelist.json'))\n" +
+      "names = [e['name'].lower() for e in wl]\n" +
+      "if name.lower() not in names:\n" +
+      "    wl.append({'uuid': uid, 'name': name})\n" +
+      "    json.dump(wl, open('/opt/minecraft/server/whitelist.json', 'w'), indent=2)\n" +
+      "    print(f'已添加 {name}')\n" +
+      'else:\n' +
+      "    print(f'{name} 已在白名单中')\n" +
+      "    print(e['name'])\n" +
+      'print()\n' +
+      "print('当前白名单:', ', '.join(e['name'] for e in wl))\n" +
+      '" && sudo systemctl start minecraft';
   }
 
   // 第①步：在 PowerShell 执行，SSH 登录
   const step1 = 'ssh -o StrictHostKeyChecking=accept-new -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP;
-
-  // 第②步：连上后在服务器终端中粘贴执行
-  const step2 = 'python3 -c "' + pyCmd + '"';
 
   document.getElementById("wl-step1").textContent = step1;
   document.getElementById("wl-step2").textContent = step2;
