@@ -190,6 +190,18 @@
 <div class="wl-card">
   <button class="wl-toggle" id="wl-toggle" onclick="toggleWhitelist()">👥 查看/配置白名单</button>
   <div class="wl-body" id="wl-body">
+    <!-- Admin 密码验证 -->
+    <div id="wl-admin-gate" style="text-align:center;padding:8px 0">
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:10px">管理白名单需要再次验证</p>
+      <input type="password" id="wl-admin-pwd" placeholder="输入管理员密码" maxlength="20"
+        style="width:100%;padding:10px;border-radius:8px;border:1px solid #334;background:#0f3460;color:#e0e0e0;font-size:14px;text-align:center;outline:none;margin-bottom:8px"
+        onkeydown="if(event.key==='Enter')verifyWlAdmin()">
+      <p style="color:#ef4444;font-size:13px;display:none" id="wl-admin-err">密码错误</p>
+      <button onclick="verifyWlAdmin()"
+        style="width:100%;padding:10px;border:none;border-radius:8px;background:#4ade80;color:#1a1a2e;font-size:14px;font-weight:600;cursor:pointer">验证</button>
+    </div>
+    <!-- 白名单功能（验证后显示） -->
+    <div id="wl-content" style="display:none">
     <div class="wl-tabs">
       <button class="wl-tab active" id="tab-view" onclick="switchWlTab('view')">📋 查看白名单</button>
       <button class="wl-tab" id="tab-add" onclick="switchWlTab('add')">➕ 添加玩家</button>
@@ -216,8 +228,9 @@
         <button class="wl-copy-btn" style="display:block" onclick="copyWl('wl-step2', this)">📋 复制第②步</button>
       </div>
     </div>
-  </div>
-</div>
+    </div><!-- /wl-content -->
+  </div><!-- /wl-body -->
+</div><!-- /wl-card -->
 
 <!-- 关机确认弹窗 -->
 <div class="confirm-overlay" id="confirm-overlay">
@@ -399,11 +412,34 @@ function toggleWhitelist() {
   if (wlExpanded) {
     body.classList.add("show");
     toggle.classList.add("active");
+    // 检查是否已验证 admin
+    if (sessionStorage.getItem("mc_wl_admin") === "1") {
+      showWlContent();
+    }
     loadPemPath();
     updateWlIpHint();
   } else {
     body.classList.remove("show");
     toggle.classList.remove("active");
+  }
+}
+
+function showWlContent() {
+  document.getElementById("wl-admin-gate").style.display = "none";
+  document.getElementById("wl-content").style.display = "block";
+}
+
+async function verifyWlAdmin() {
+  const input = document.getElementById("wl-admin-pwd").value;
+  const hash = await sha256(input);
+  if (hash === PANEL_PASSWORD_HASH) {
+    sessionStorage.setItem("mc_wl_admin", "1");
+    document.getElementById("wl-admin-err").style.display = "none";
+    showWlContent();
+    loadPemPath();
+    updateWlIpHint();
+  } else {
+    document.getElementById("wl-admin-err").style.display = "block";
   }
 }
 
