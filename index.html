@@ -121,13 +121,12 @@
   }
   .wl-gen-btn:hover { background: #22c55e; }
   .wl-output {
-    display: none; margin-top: 12px;
+    display: block; margin-top: 4px;
     background: #0f3460; border-radius: 10px; padding: 14px;
     font-family: "SF Mono","Consolas",monospace; font-size: 12px;
-    word-break: break-all; line-height: 1.6; max-height: 200px; overflow-y: auto;
+    word-break: break-all; line-height: 1.6; max-height: 160px; overflow-y: auto;
     white-space: pre-wrap; color: #e0e0e0;
   }
-  .wl-output.show { display: block; }
   .wl-copy-btn {
     display: none; width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #334;
     border-radius: 8px; background: #1a1a2e; color: #ccc; font-size: 14px; cursor: pointer;
@@ -205,8 +204,18 @@
     </div>
     <p class="wl-ip-hint" id="wl-ip-hint">⚠ 服务器离线，无法执行白名单命令。请先启动服务器。</p>
     <button class="wl-gen-btn" id="wl-gen-btn" onclick="generateCommand()">📋 生成命令</button>
-    <pre class="wl-output" id="wl-output"></pre>
-    <button class="wl-copy-btn" id="wl-copy-btn" onclick="copyCommand()">📋 一键复制</button>
+    <div class="wl-result" id="wl-result" style="display:none">
+      <div style="margin-top:12px">
+        <span style="color:#9ca3af;font-size:12px">① 复制到 <strong>PowerShell</strong> 执行，连接服务器：</span>
+        <pre class="wl-output" id="wl-step1"></pre>
+        <button class="wl-copy-btn" style="display:block;margin-bottom:12px" onclick="copyWl('wl-step1', this)">📋 复制第①步</button>
+      </div>
+      <div>
+        <span style="color:#9ca3af;font-size:12px">② 连上后在服务器终端中粘贴执行：</span>
+        <pre class="wl-output" id="wl-step2"></pre>
+        <button class="wl-copy-btn" style="display:block" onclick="copyWl('wl-step2', this)">📋 复制第②步</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -431,56 +440,57 @@ function generateCommand() {
   if (!currentIP) { alert("服务器离线，无法生成命令。请先启动服务器。"); return; }
 
   const rconPwd = "YYv3VAhOrVGdrYChsdp6hw==";
-  let pyScript;
+  let pyCmd;
 
   if (wlMode === "view") {
-    pyScript = "import socket, struct\n" +
-      "s = socket.socket()\n" +
-      "s.connect(('127.0.0.1', 25575))\n" +
-      "pwd = b'" + rconPwd + "\\x00\\x00'\n" +
-      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd)\n" +
-      "s.recv(4096)\n" +
-      "cmd = b'whitelist list\\x00\\x00'\n" +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd)\n" +
-      "print(s.recv(4096)[8:].decode().strip())\n" +
+    pyCmd = "import socket, struct; " +
+      "s = socket.socket(); " +
+      "s.connect(('127.0.0.1', 25575)); " +
+      "pwd = b'" + rconPwd + "\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd); " +
+      "s.recv(4096); " +
+      "cmd = b'whitelist list\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd); " +
+      "print(s.recv(4096)[8:].decode().strip()); " +
       "s.close()";
   } else {
-    pyScript = "import socket, struct\n" +
-      "s = socket.socket()\n" +
-      "s.connect(('127.0.0.1', 25575))\n" +
-      "pwd = b'" + rconPwd + "\\x00\\x00'\n" +
-      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd)\n" +
-      "s.recv(4096)\n" +
-      "cmd = b'whitelist add " + name + "\\x00\\x00'\n" +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd)\n" +
-      "print(s.recv(4096)[8:].decode().strip())\n" +
-      "cmd2 = b'whitelist reload\\x00\\x00'\n" +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd2), 2, 2) + cmd2)\n" +
-      "s.recv(4096)\n" +
-      "cmd3 = b'whitelist list\\x00\\x00'\n" +
-      "s.sendall(struct.pack('<iii', 4+4+len(cmd3), 3, 2) + cmd3)\n" +
-      "print(s.recv(4096)[8:].decode().strip())\n" +
+    pyCmd = "import socket, struct; " +
+      "s = socket.socket(); " +
+      "s.connect(('127.0.0.1', 25575)); " +
+      "pwd = b'" + rconPwd + "\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd); " +
+      "s.recv(4096); " +
+      "cmd = b'whitelist add " + name + "\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd); " +
+      "print(s.recv(4096)[8:].decode().strip()); " +
+      "cmd2 = b'whitelist reload\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd2), 2, 2) + cmd2); " +
+      "s.recv(4096); " +
+      "cmd3 = b'whitelist list\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd3), 3, 2) + cmd3); " +
+      "print(s.recv(4096)[8:].decode().strip()); " +
       "s.close()";
   }
 
-  // base64 编码，避开 PowerShell 转义问题
-  const b64 = btoa(pyScript);
-  const cmd = 'ssh -o StrictHostKeyChecking=accept-new -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP + ' "echo ' + b64 + ' | base64 -d | python3"';
+  // 第①步：在 PowerShell 执行，SSH 登录
+  const step1 = 'ssh -o StrictHostKeyChecking=accept-new -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP;
 
-  const output = document.getElementById("wl-output");
-  output.textContent = cmd;
-  output.classList.add("show");
-  document.getElementById("wl-copy-btn").classList.add("show");
-  document.getElementById("wl-copy-btn").textContent = "📋 一键复制";
+  // 第②步：连上后在服务器终端中粘贴执行
+  const step2 = 'python3 -c "' + pyCmd + '"';
+
+  document.getElementById("wl-step1").textContent = step1;
+  document.getElementById("wl-step2").textContent = step2;
+  document.getElementById("wl-result").style.display = "block";
 }
 
-function copyCommand() {
-  const text = document.getElementById("wl-output").textContent;
+function copyWl(id, btn) {
+  const text = document.getElementById(id).textContent;
   navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById("wl-copy-btn");
-    btn.textContent = "✓ 已复制！粘贴到 PowerShell 执行";
-    btn.classList.add("copied");
-    setTimeout(() => { btn.textContent = "📋 一键复制"; btn.classList.remove("copied"); }, 3000);
+    const orig = btn.textContent;
+    btn.textContent = "✓ 已复制";
+    btn.style.borderColor = "#4ade80";
+    btn.style.color = "#4ade80";
+    setTimeout(() => { btn.textContent = orig; btn.style.borderColor = ""; btn.style.color = ""; }, 2000);
   });
 }
 
