@@ -85,6 +85,56 @@
     cursor: pointer;
   }
   .unlock-box .err { color: #ef4444; font-size: 14px; margin-top: 8px; display: none; }
+  /* 白名单管理 */
+  .wl-card {
+    background: #16213e; border-radius: 16px; padding: 24px 28px;
+    width: 100%; max-width: 380px; margin: 0 16px 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .wl-toggle {
+    width: 100%; padding: 14px; border: 2px solid #334; border-radius: 12px;
+    background: transparent; color: #e0e0e0; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .wl-toggle:hover { border-color: #4ade80; background: #0f3460; }
+  .wl-toggle.active { border-color: #4ade80; border-radius: 12px 12px 0 0; }
+  .wl-body { display: none; border: 2px solid #4ade80; border-top: none; border-radius: 0 0 12px 12px; padding: 16px; }
+  .wl-body.show { display: block; }
+  .wl-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .wl-tab {
+    flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334;
+    background: transparent; color: #9ca3af; font-size: 14px; cursor: pointer;
+  }
+  .wl-tab.active { background: #0f3460; border-color: #4ade80; color: #4ade80; }
+  .wl-field { margin-bottom: 12px; }
+  .wl-field label { display: block; color: #9ca3af; font-size: 12px; margin-bottom: 4px; }
+  .wl-field input {
+    width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334;
+    background: #0f3460; color: #e0e0e0; font-size: 14px; outline: none;
+  }
+  .wl-field input:focus { border-color: #4ade80; }
+  .wl-ip-hint { color: #f59e0b; font-size: 12px; margin-bottom: 12px; display: none; }
+  .wl-gen-btn {
+    width: 100%; padding: 12px; border: none; border-radius: 10px;
+    background: #4ade80; color: #1a1a2e; font-size: 16px; font-weight: 600;
+    cursor: pointer;
+  }
+  .wl-gen-btn:hover { background: #22c55e; }
+  .wl-output {
+    display: none; margin-top: 12px;
+    background: #0f3460; border-radius: 10px; padding: 14px;
+    font-family: "SF Mono","Consolas",monospace; font-size: 12px;
+    word-break: break-all; line-height: 1.6; max-height: 200px; overflow-y: auto;
+    white-space: pre-wrap; color: #e0e0e0;
+  }
+  .wl-output.show { display: block; }
+  .wl-copy-btn {
+    display: none; width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #334;
+    border-radius: 8px; background: #1a1a2e; color: #ccc; font-size: 14px; cursor: pointer;
+  }
+  .wl-copy-btn.show { display: block; }
+  .wl-copy-btn:hover { background: #2a2a4e; }
+  .wl-copy-btn.copied { border-color: #4ade80; color: #4ade80; }
 </style>
 </head>
 <body>
@@ -137,6 +187,29 @@
   </div>
 </div>
 
+<!-- 白名单管理 -->
+<div class="wl-card">
+  <button class="wl-toggle" id="wl-toggle" onclick="toggleWhitelist()">👥 查看/配置白名单</button>
+  <div class="wl-body" id="wl-body">
+    <div class="wl-tabs">
+      <button class="wl-tab active" id="tab-view" onclick="switchWlTab('view')">📋 查看白名单</button>
+      <button class="wl-tab" id="tab-add" onclick="switchWlTab('add')">➕ 添加玩家</button>
+    </div>
+    <div class="wl-field">
+      <label>PEM 密钥文件路径</label>
+      <input type="text" id="wl-pem" placeholder="C:/Users/.../MC.pem">
+    </div>
+    <div class="wl-field" id="wl-name-group" style="display:none">
+      <label>玩家 ID（区分大小写）</label>
+      <input type="text" id="wl-name" placeholder="例如: XIN77" maxlength="16">
+    </div>
+    <p class="wl-ip-hint" id="wl-ip-hint">⚠ 服务器离线，无法执行白名单命令。请先启动服务器。</p>
+    <button class="wl-gen-btn" id="wl-gen-btn" onclick="generateCommand()">📋 生成命令</button>
+    <pre class="wl-output" id="wl-output"></pre>
+    <button class="wl-copy-btn" id="wl-copy-btn" onclick="copyCommand()">📋 一键复制</button>
+  </div>
+</div>
+
 <!-- 关机确认弹窗 -->
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
@@ -180,6 +253,7 @@ const API_KEY  = "f656760fe62c5fcfc85d1271eb4c6572";
 
 // ====== 状态管理 ======
 let pollingTimer = null;
+let currentIP = null;
 
 async function callAPI(method, path) {
   const resp = await fetch(API_BASE + path, {
@@ -204,6 +278,7 @@ async function refreshStatus() {
     if (data.ecs === "Running" && data.mc === "Online") {
       setView("online");
       document.getElementById("ip-display").textContent = data.ip;
+      currentIP = data.ip;
       stopPolling();
     } else if (data.ecs === "Running" && data.mc === "Crashed") {
       setView("crashed");
@@ -293,6 +368,122 @@ function copyIP() {
     setTimeout(() => { btn.textContent = "📋 复制"; btn.classList.remove("copied"); }, 2000);
   });
 }
+
+// ====== 白名单管理 ======
+let wlMode = "view"; // "view" | "add"
+let wlExpanded = false;
+
+// PEM 路径持久化
+const WL_PEM_KEY = "mc_wl_pem";
+function loadPemPath() {
+  const saved = localStorage.getItem(WL_PEM_KEY);
+  document.getElementById("wl-pem").value = saved || "C:/Users/zhaolang/Downloads/MC.pem";
+}
+function savePemPath() {
+  localStorage.setItem(WL_PEM_KEY, document.getElementById("wl-pem").value);
+}
+
+function toggleWhitelist() {
+  wlExpanded = !wlExpanded;
+  const body = document.getElementById("wl-body");
+  const toggle = document.getElementById("wl-toggle");
+  if (wlExpanded) {
+    body.classList.add("show");
+    toggle.classList.add("active");
+    loadPemPath();
+    updateWlIpHint();
+  } else {
+    body.classList.remove("show");
+    toggle.classList.remove("active");
+  }
+}
+
+function switchWlTab(mode) {
+  wlMode = mode;
+  document.getElementById("tab-view").classList.toggle("active", mode === "view");
+  document.getElementById("tab-add").classList.toggle("active", mode === "add");
+  document.getElementById("wl-name-group").style.display = mode === "add" ? "block" : "none";
+  // 清空之前的输出
+  document.getElementById("wl-output").classList.remove("show");
+  document.getElementById("wl-copy-btn").classList.remove("show");
+}
+
+function updateWlIpHint() {
+  const hint = document.getElementById("wl-ip-hint");
+  if (!currentIP) {
+    hint.style.display = "block";
+    document.getElementById("wl-gen-btn").disabled = true;
+    document.getElementById("wl-gen-btn").style.opacity = "0.5";
+  } else {
+    hint.style.display = "none";
+    document.getElementById("wl-gen-btn").disabled = false;
+    document.getElementById("wl-gen-btn").style.opacity = "1";
+  }
+}
+
+function generateCommand() {
+  savePemPath();
+  const pem = document.getElementById("wl-pem").value.trim();
+  const name = document.getElementById("wl-name").value.trim();
+
+  if (!pem) { alert("请填写 PEM 密钥文件路径"); return; }
+  if (wlMode === "add" && !name) { alert("请填写玩家 ID"); return; }
+  if (!currentIP) { alert("服务器离线，无法生成命令。请先启动服务器。"); return; }
+
+  const rconPwd = "YYv3VAhOrVGdrYChsdp6hw==";
+  let pyCmd;
+
+  if (wlMode === "view") {
+    pyCmd = "import socket, struct; " +
+      "s = socket.socket(); " +
+      "s.connect(('127.0.0.1', 25575)); " +
+      "pwd = b'" + rconPwd + "\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd); " +
+      "s.recv(4096); " +
+      "cmd = b'whitelist list\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd); " +
+      "print(s.recv(4096)[8:].decode().strip()); " +
+      "s.close()";
+  } else {
+    pyCmd = "import socket, struct; " +
+      "s = socket.socket(); " +
+      "s.connect(('127.0.0.1', 25575)); " +
+      "pwd = b'" + rconPwd + "\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(pwd), 0, 3) + pwd); " +
+      "s.recv(4096); " +
+      "cmd = b'whitelist add " + name + "\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd), 1, 2) + cmd); " +
+      "print(s.recv(4096)[8:].decode().strip()); " +
+      "cmd2 = b'whitelist reload\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd2), 2, 2) + cmd2); " +
+      "s.recv(4096); " +
+      "cmd3 = b'whitelist list\\x00\\x00'; " +
+      "s.sendall(struct.pack('<iii', 4+4+len(cmd3), 3, 2) + cmd3); " +
+      "print(s.recv(4096)[8:].decode().strip()); " +
+      "s.close()";
+  }
+
+  const cmd = 'ssh -i "' + pem.replace(/\\/g, "\\\\") + '" ecs-user@' + currentIP + ' "python3 -c \\"' + pyCmd + '\\""';
+
+  const output = document.getElementById("wl-output");
+  output.textContent = cmd;
+  output.classList.add("show");
+  document.getElementById("wl-copy-btn").classList.add("show");
+  document.getElementById("wl-copy-btn").textContent = "📋 一键复制";
+}
+
+function copyCommand() {
+  const text = document.getElementById("wl-output").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("wl-copy-btn");
+    btn.textContent = "✓ 已复制！粘贴到 PowerShell 执行";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "📋 一键复制"; btn.classList.remove("copied"); }, 3000);
+  });
+}
+
+// 首次展开时加载 PEM 路径
+loadPemPath();
 
 // ====== 初始化 ======
 refreshStatus();
